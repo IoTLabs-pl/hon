@@ -11,16 +11,16 @@ MOBILE_ID: str = "homassistant"
 CONF_REFRESH_TOKEN = "refresh_token"
 
 PLATFORMS: list[str] = [
-    "sensor",
-    "select",
-    "number",
-    "switch",
-    "button",
     "binary_sensor",
-    "climate",
-    "fan",
-    "light",
-    "lock",
+    "button",
+    # "climate",
+    # "fan",
+    # "light",
+    # "lock",
+    # "number",
+    # "select",
+    "sensor",
+    # "switch",
 ]
 
 APPLIANCES: dict[str, str] = {
@@ -100,46 +100,6 @@ LANGUAGES: list[str] = [
     "zh",  # Chinese
 ]
 
-WASHING_PR_PHASE: dict[int, str] = {
-    0: "ready",
-    1: "washing",
-    2: "washing",
-    3: "spin",
-    4: "rinse",
-    5: "rinse",
-    6: "rinse",
-    7: "drying",
-    8: "drying",
-    9: "steam",
-    10: "ready",
-    11: "spin",
-    12: "weighting",
-    13: "weighting",
-    14: "washing",
-    15: "washing",
-    16: "washing",
-    17: "rinse",
-    18: "rinse",
-    19: "scheduled",
-    20: "tumbling",
-    24: "refresh",
-    25: "washing",
-    26: "heating",
-    27: "washing",
-}
-
-MACH_MODE: dict[int, str] = {
-    0: "ready",  # NO_STATE
-    1: "ready",  # SELECTION_MODE
-    2: "running",  # EXECUTION_MODE
-    3: "pause",  # PAUSE_MODE
-    4: "scheduled",  # DELAY_START_SELECTION_MODE
-    5: "scheduled",  # DELAY_START_EXECUTION_MODE
-    6: "error",  # ERROR_MODE
-    7: "ready",  # END_MODE
-    8: "test",  # TEST_MODE
-    9: "ending",  # STOP_MODE
-}
 
 TUMBLE_DRYER_PR_PHASE: dict[int, str] = {
     0: "ready",
@@ -159,19 +119,6 @@ TUMBLE_DRYER_PR_PHASE: dict[int, str] = {
     20: "drying",
 }
 
-DIRTY_LEVEL: dict[int, str] = {
-    0: "unknown",
-    1: "little",
-    2: "normal",
-    3: "very",
-}
-
-STEAM_LEVEL: dict[int, str] = {
-    0: "no_steam",
-    1: "cotton",
-    2: "delicate",
-    3: "synthetic",
-}
 
 DISHWASHER_PR_PHASE: dict[int, str] = {
     0: "ready",
@@ -239,43 +186,6 @@ AP_DIFFUSER_LEVEL: dict[int, str] = {
 
 REF_HUMIDITY_LEVELS: dict[int, str] = {1: "low", 2: "mid", 3: "high"}
 
-STAIN_TYPES: dict[int, str] = {
-    0: "unknown",
-    1: "wine",
-    2: "grass",
-    3: "soil",
-    4: "blood",
-    5: "milk",
-    # 6: "butter",
-    6: "cooking_oil",
-    7: "tea",
-    8: "coffee",
-    # 9: "chocolate",
-    9: "ice_cream",
-    10: "lip_gloss",
-    11: "curry",
-    12: "milk_tea",
-    # 13: "chili_oil",
-    13: "rust",
-    14: "blue_ink",
-    # 14: "mech_grease",
-    # 15: "color_pencil",
-    # 15: "deodorant",
-    15: "perfume",
-    # 16: "glue",
-    16: "shoe_cream",
-    17: "oil_pastel",
-    18: "blueberry",
-    19: "sweat",
-    20: "egg",
-    # 20: "mayonnaise",
-    21: "ketchup",
-    22: "baby_food",
-    23: "soy_sauce",
-    24: "bean_paste",
-    25: "chili_sauce",
-    26: "fruit",
-}
 
 AC_POSITION_HORIZONTAL = {
     0: "position_1",

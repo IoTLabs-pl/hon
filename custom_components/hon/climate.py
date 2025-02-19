@@ -21,8 +21,8 @@ from homeassistant.const import (
 )
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from pyhon.appliance import HonAppliance
-from pyhon.parameter.range import HonParameterRange
+from pyhon.appliances import Appliance
+from pyhon.parameter import RangeParameter
 
 from .const import HON_HVAC_MODE, HON_FAN, DOMAIN, HON_HVAC_PROGRAM
 from .entity import HonEntity
@@ -131,7 +131,7 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        device: HonAppliance,
+        device: Appliance,
         description: HonACClimateEntityDescription,
     ) -> None:
         super().__init__(hass, entry, device, description)
@@ -163,8 +163,8 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
         self._handle_coordinator_update(update=False)
 
     def _set_temperature_bound(self) -> None:
-        temperature = self._device.settings["settings.tempSel"]
-        if not isinstance(temperature, HonParameterRange):
+        temperature = self._appliance.settings["settings.tempSel"]
+        if not isinstance(temperature, RangeParameter):
             raise ValueError
         self._attr_max_temp = temperature.max
         self._attr_target_temperature_step = temperature.step
@@ -173,51 +173,51 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
     @property
     def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        return self._device.get("tempSel", 0.0)
+        return self._appliance.get("tempSel", 0.0)
 
     @property
     def current_temperature(self) -> float | None:
         """Return the current temperature."""
-        return self._device.get("tempIndoor", 0.0)
+        return self._appliance.get("tempIndoor", 0.0)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
-        self._device.settings["settings.tempSel"].value = str(int(temperature))
-        await self._device.commands["settings"].send()
+        self._appliance.settings["settings.tempSel"].value = str(int(temperature))
+        await self._appliance.commands["settings"].send()
         self.async_write_ha_state()
 
     @property
     def hvac_mode(self) -> HVACMode:
-        if self._device.get("onOffStatus") == 0:
+        if self._appliance.get("onOffStatus") == 0:
             return HVACMode.OFF
         else:
-            return HON_HVAC_MODE[self._device.get("machMode")]
+            return HON_HVAC_MODE[self._appliance.get("machMode")]
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         self._attr_hvac_mode = hvac_mode
         if hvac_mode == HVACMode.OFF:
-            await self._device.commands["stopProgram"].send()
-            self._device.sync_command("stopProgram", "settings")
+            await self._appliance.commands["stopProgram"].send()
+            self._appliance.sync_command("stopProgram", "settings")
         else:
-            self._device.settings["settings.onOffStatus"].value = "1"
-            setting = self._device.settings["settings.machMode"]
+            self._appliance.settings["settings.onOffStatus"].value = "1"
+            setting = self._appliance.settings["settings.machMode"]
             modes = {HON_HVAC_MODE[int(number)]: number for number in setting.values}
             if hvac_mode in modes:
                 setting.value = modes[hvac_mode]
             else:
                 await self.async_set_preset_mode(HON_HVAC_PROGRAM[hvac_mode])
                 return
-            await self._device.commands["settings"].send()
+            await self._appliance.commands["settings"].send()
         self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._device.commands["startProgram"].send()
-        self._device.sync_command("startProgram", "settings")
+        await self._appliance.commands["startProgram"].send()
+        self._appliance.sync_command("startProgram", "settings")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._device.commands["stopProgram"].send()
-        self._device.sync_command("stopProgram", "settings")
+        await self._appliance.commands["stopProgram"].send()
+        self._appliance.sync_command("stopProgram", "settings")
 
     @property
     def preset_mode(self) -> str | None:
@@ -226,43 +226,43 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the new preset mode."""
-        if program := self._device.settings.get("startProgram.program"):
+        if program := self._appliance.settings.get("startProgram.program"):
             program.value = preset_mode
-        self._device.sync_command("startProgram", "settings")
+        self._appliance.sync_command("startProgram", "settings")
         self._set_temperature_bound()
         self._handle_coordinator_update(update=False)
         self.coordinator.async_set_updated_data({})
         self._attr_preset_mode = preset_mode
-        await self._device.commands["startProgram"].send()
+        await self._appliance.commands["startProgram"].send()
         self.async_write_ha_state()
 
     @property
     def fan_modes(self) -> list[str]:
         """Return the list of available fan modes."""
         fan_modes = []
-        for mode in reversed(self._device.settings["settings.windSpeed"].values):
+        for mode in reversed(self._appliance.settings["settings.windSpeed"].values):
             fan_modes.append(HON_FAN[int(mode)])
         return fan_modes
 
     @property
     def fan_mode(self) -> str | None:
         """Return the fan setting."""
-        return HON_FAN[self._device.get("windSpeed")]
+        return HON_FAN[self._appliance.get("windSpeed")]
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         fan_modes = {}
-        for mode in reversed(self._device.settings["settings.windSpeed"].values):
+        for mode in reversed(self._appliance.settings["settings.windSpeed"].values):
             fan_modes[HON_FAN[int(mode)]] = mode
-        self._device.settings["settings.windSpeed"].value = str(fan_modes[fan_mode])
+        self._appliance.settings["settings.windSpeed"].value = str(fan_modes[fan_mode])
         self._attr_fan_mode = fan_mode
-        await self._device.commands["settings"].send()
+        await self._appliance.commands["settings"].send()
         self.async_write_ha_state()
 
     @property
     def swing_mode(self) -> str | None:
         """Return the swing setting."""
-        horizontal = self._device.get("windDirectionHorizontal")
-        vertical = self._device.get("windDirectionVertical")
+        horizontal = self._appliance.get("windDirectionHorizontal")
+        vertical = self._appliance.get("windDirectionVertical")
         if horizontal == 7 and vertical == 8:
             return SWING_BOTH
         if horizontal == 7:
@@ -272,8 +272,8 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
         return SWING_OFF
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
-        horizontal = self._device.settings["settings.windDirectionHorizontal"]
-        vertical = self._device.settings["settings.windDirectionVertical"]
+        horizontal = self._appliance.settings["settings.windDirectionHorizontal"]
+        vertical = self._appliance.settings["settings.windDirectionVertical"]
         if swing_mode in [SWING_BOTH, SWING_HORIZONTAL]:
             horizontal.value = "7"
         if swing_mode in [SWING_BOTH, SWING_VERTICAL]:
@@ -283,7 +283,7 @@ class HonACClimateEntity(HonEntity, ClimateEntity):
         if swing_mode in [SWING_OFF, SWING_VERTICAL] and horizontal.value == "7":
             horizontal.value = "0"
         self._attr_swing_mode = swing_mode
-        await self._device.commands["settings"].send()
+        await self._appliance.commands["settings"].send()
         self.async_write_ha_state()
 
     @callback
@@ -300,7 +300,7 @@ class HonClimateEntity(HonEntity, ClimateEntity):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        device: HonAppliance,
+        device: Appliance,
         description: HonClimateEntityDescription,
     ) -> None:
         super().__init__(hass, entry, device, description)
@@ -340,24 +340,24 @@ class HonClimateEntity(HonEntity, ClimateEntity):
     @property
     def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        return self._device.get(self.entity_description.key, 0.0)
+        return self._appliance.get(self.entity_description.key, 0.0)
 
     @property
     def current_temperature(self) -> float | None:
         """Return the current temperature."""
         temp_key = self.entity_description.key.split(".")[-1].replace("Sel", "")
-        return self._device.get(temp_key, 0.0)
+        return self._appliance.get(temp_key, 0.0)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
-        self._device.settings[self.entity_description.key].value = str(int(temperature))
-        await self._device.commands["settings"].send()
+        self._appliance.settings[self.entity_description.key].value = str(int(temperature))
+        await self._appliance.commands["settings"].send()
         self.async_write_ha_state()
 
     @property
     def hvac_mode(self) -> HVACMode:
-        if self._device.get("onOffStatus") == 0:
+        if self._appliance.get("onOffStatus") == 0:
             return HVACMode.OFF
         else:
             return self.entity_description.mode
@@ -366,27 +366,27 @@ class HonClimateEntity(HonEntity, ClimateEntity):
         if len(self.hvac_modes) <= 1:
             return
         if hvac_mode == HVACMode.OFF:
-            await self._device.commands["stopProgram"].send()
+            await self._appliance.commands["stopProgram"].send()
         else:
-            await self._device.commands["startProgram"].send()
+            await self._appliance.commands["startProgram"].send()
         self._attr_hvac_mode = hvac_mode
         self.async_write_ha_state()
 
     async def async_turn_on(self) -> None:
         """Set the HVAC State to on."""
-        await self._device.commands["startProgram"].send()
+        await self._appliance.commands["startProgram"].send()
 
     async def async_turn_off(self) -> None:
         """Set the HVAC State to off."""
-        await self._device.commands["stopProgram"].send()
+        await self._appliance.commands["stopProgram"].send()
 
     @property
     def preset_mode(self) -> str | None:
         """Return the current Preset for this channel."""
-        if self._device.get("onOffStatus") is not None:
-            return self._device.get("programName", "")
+        if self._appliance.get("onOffStatus") is not None:
+            return self._appliance.get("programName", "")
         else:
-            return self._device.get(
+            return self._appliance.get(
                 f"mode{self.entity_description.key[-2:]}", "no_mode"
             )
 
@@ -396,24 +396,24 @@ class HonClimateEntity(HonEntity, ClimateEntity):
             command = "stopProgram"
         elif preset_mode == "no_mode":
             command = "settings"
-            self._device.commands["settings"].reset()
+            self._appliance.commands["settings"].reset()
         else:
             command = "startProgram"
-        if program := self._device.settings.get(f"{command}.program"):
+        if program := self._appliance.settings.get(f"{command}.program"):
             program.value = preset_mode
-        zone = self._device.settings.get(f"{command}.zone")
+        zone = self._appliance.settings.get(f"{command}.zone")
         if zone and isinstance(self.entity_description.name, str):
             zone.value = self.entity_description.name.lower()
-        self._device.sync_command(command, "settings")
+        self._appliance.sync_command(command, "settings")
         self._set_temperature_bound()
         self._attr_preset_mode = preset_mode
         self.coordinator.async_set_updated_data({})
-        await self._device.commands[command].send()
+        await self._appliance.commands[command].send()
         self.async_write_ha_state()
 
     def _set_temperature_bound(self) -> None:
-        temperature = self._device.settings[self.entity_description.key]
-        if not isinstance(temperature, HonParameterRange):
+        temperature = self._appliance.settings[self.entity_description.key]
+        if not isinstance(temperature, RangeParameter):
             raise ValueError
         self._attr_max_temp = temperature.max
         self._attr_target_temperature_step = temperature.step
